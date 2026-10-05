@@ -1,6 +1,6 @@
 // lib/providers/categoria_provider.dart
 import 'package:flutter/material.dart';
-import 'package:lucky/services/categoria_service.dart';
+import 'package:xiaoxa/services/categoria_service.dart';
 
 class CategoriaProvider extends ChangeNotifier {
   final CategoriaService _categoriaService = CategoriaService();

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:lucky/utils/dio_client.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
 
 class PedidoService {
   final Dio _dio = ApiClient.dio;

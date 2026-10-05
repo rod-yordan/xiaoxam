@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:lucky/models/ubicacion_item.dart';
-import 'package:lucky/services/auth_service.dart';
-import 'package:lucky/utils/dio_client.dart';
+import 'package:xiaoxa/models/ubicacion_item.dart';
+import 'package:xiaoxa/services/auth_service.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
 
 class UbicacionService {
   final Dio _dio = ApiClient.dio;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lucky/models/genero_model.dart';
-import 'package:lucky/services/genero_service.dart';
+import 'package:xiaoxa/models/genero_model.dart';
+import 'package:xiaoxa/services/genero_service.dart';
 
 class GenerosProvider extends ChangeNotifier {
   List<GeneroModel> _generos = [];

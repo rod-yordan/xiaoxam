@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucky/screens/producto_card.dart';
-import 'package:lucky/services/producto_service.dart';
-import 'package:lucky/models/producto_model.dart';
+import 'package:xiaoxa/screens/producto_card.dart';
+import 'package:xiaoxa/services/producto_service.dart';
+import 'package:xiaoxa/models/producto_model.dart';
 
 class CatalogoParte3 extends StatefulWidget {
   final String categoria;

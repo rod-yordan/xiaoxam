@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucky/providers/auth_provider.dart';
+import 'package:xiaoxa/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:lucky/providers/carrito_provider.dart';
-import 'package:lucky/models/ubicacion_item.dart';
-import 'package:lucky/services/ubicacion_service.dart';
+import 'package:xiaoxa/providers/carrito_provider.dart';
+import 'package:xiaoxa/models/ubicacion_item.dart';
+import 'package:xiaoxa/services/ubicacion_service.dart';
 
 class InformacionCompra extends StatefulWidget {
   const InformacionCompra({super.key});
@@ -73,8 +73,9 @@ class _InformacionCompraState extends State<InformacionCompra> {
         (t) => t.id == auth.idTipoDocumento,
         orElse: () => UbicacionItem(id: 0, nombre: ''),
       );
-      if (_tipoDocumentoSeleccionado?.id == 0)
+      if (_tipoDocumentoSeleccionado?.id == 0) {
         _tipoDocumentoSeleccionado = null;
+      }
       setState(() {});
     }
   }
@@ -315,8 +316,9 @@ class _InformacionCompraState extends State<InformacionCompra> {
                                 _distritoSeleccionado,
                                 (v) {
                                   setState(() => _distritoSeleccionado = v);
-                                  if (v != null && _tipoEntrega == 2)
+                                  if (v != null && _tipoEntrega == 2) {
                                     _calcularEnvio(v.id);
+                                  }
                                 },
                                 enabled: _provinciaSeleccionada != null,
                               ),

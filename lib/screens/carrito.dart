@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:lucky/providers/carrito_provider.dart';
+import 'package:xiaoxa/providers/carrito_provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 class Carrito extends StatefulWidget {

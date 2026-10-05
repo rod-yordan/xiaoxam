@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:lucky/models/banner_model.dart';
-import 'package:lucky/utils/dio_client.dart';
+import 'package:xiaoxa/models/banner_model.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
 
 class BannerService {
   final Dio _dio = ApiClient.dio;

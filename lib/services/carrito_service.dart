@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:lucky/models/carrito_model.dart';
-import 'package:lucky/utils/dio_client.dart';
-import 'package:lucky/services/auth_service.dart';
+import 'package:xiaoxa/models/carrito_model.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
+import 'package:xiaoxa/services/auth_service.dart';
 
 class CarritoService {
   final Dio _dio = ApiClient.dio;

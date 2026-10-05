@@ -1,5 +1,5 @@
 // models/carrito_model.dart
-import 'package:lucky/models/item_carrito_model.dart';
+import 'package:xiaoxa/models/item_carrito_model.dart';
 
 class CarritoModel {
   final int idCarrito;

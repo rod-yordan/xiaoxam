@@ -1,4 +1,4 @@
-import 'package:lucky/models/producto_model.dart';
+import 'package:xiaoxa/models/producto_model.dart';
 
 class VarianteModel {
   final int id;

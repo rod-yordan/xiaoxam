@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:lucky/providers/generos_provider.dart';
-import 'package:lucky/screens/categoria_card.dart';
+import 'package:xiaoxa/providers/generos_provider.dart';
+import 'package:xiaoxa/screens/categoria_card.dart';
 
 class CatalogoParte1 extends StatefulWidget {
   const CatalogoParte1({super.key});

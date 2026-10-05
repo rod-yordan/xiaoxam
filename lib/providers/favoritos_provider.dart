@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lucky/services/favorito_service.dart';
-import 'package:lucky/providers/auth_provider.dart';
+import 'package:xiaoxa/services/favorito_service.dart';
+import 'package:xiaoxa/providers/auth_provider.dart';
 
 class FavoritosProvider with ChangeNotifier {
   final FavoritoService _service = FavoritoService();

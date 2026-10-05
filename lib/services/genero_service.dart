@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:lucky/models/genero_model.dart';
-import 'package:lucky/utils/dio_client.dart';
+import 'package:xiaoxa/models/genero_model.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
 
 class GeneroService {
   final Dio _dio = ApiClient.dio;

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:lucky/models/producto_model.dart';
-import 'package:lucky/models/variante_model.dart';
-import 'package:lucky/utils/dio_client.dart';
+import 'package:xiaoxa/models/producto_model.dart';
+import 'package:xiaoxa/models/variante_model.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
 
 class ProductoService {
   final Dio _dio = ApiClient.dio;

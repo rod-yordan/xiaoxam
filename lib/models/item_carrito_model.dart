@@ -1,5 +1,5 @@
-import 'package:lucky/models/producto_model.dart';
-import 'package:lucky/models/variante_model.dart';
+import 'package:xiaoxa/models/producto_model.dart';
+import 'package:xiaoxa/models/variante_model.dart';
 
 class ItemCarritoModel {
   final int idDetalle;

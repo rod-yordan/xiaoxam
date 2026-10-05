@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lucky/models/banner_model.dart';
-import 'package:lucky/services/banner_service.dart';
+import 'package:xiaoxa/models/banner_model.dart';
+import 'package:xiaoxa/services/banner_service.dart';
 
 class BannerProvider extends ChangeNotifier {
   final BannerService _bannerService = BannerService();

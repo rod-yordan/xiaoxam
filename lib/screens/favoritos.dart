@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucky/screens/producto_card.dart';
+import 'package:xiaoxa/screens/producto_card.dart';
 import 'package:provider/provider.dart';
-import 'package:lucky/providers/favoritos_provider.dart';
-import 'package:lucky/providers/auth_provider.dart';
-import 'package:lucky/providers/carrito_provider.dart';
+import 'package:xiaoxa/providers/favoritos_provider.dart';
+import 'package:xiaoxa/providers/auth_provider.dart';
+import 'package:xiaoxa/providers/carrito_provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 class Favoritos extends StatefulWidget {

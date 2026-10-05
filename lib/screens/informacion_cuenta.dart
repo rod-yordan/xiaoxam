@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:lucky/providers/auth_provider.dart';
+import 'package:xiaoxa/providers/auth_provider.dart';
 
 class InformacionCuenta extends StatefulWidget {
   const InformacionCuenta({super.key});

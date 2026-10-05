@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lucky/models/carrito_model.dart';
-import 'package:lucky/services/carrito_service.dart';
-import 'package:lucky/providers/auth_provider.dart';
+import 'package:xiaoxa/models/carrito_model.dart';
+import 'package:xiaoxa/services/carrito_service.dart';
+import 'package:xiaoxa/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class CarritoProvider with ChangeNotifier {

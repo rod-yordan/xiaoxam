@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:lucky/services/pedido_service.dart';
+import 'package:xiaoxa/services/pedido_service.dart';
 
 class MisPedidos extends StatefulWidget {
   const MisPedidos({super.key});

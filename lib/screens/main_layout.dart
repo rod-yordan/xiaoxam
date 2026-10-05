@@ -1,7 +1,7 @@
 // main_layout.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucky/screens/barra_navegacion.dart';
+import 'package:xiaoxa/screens/barra_navegacion.dart';
 
 class MainLayout extends StatefulWidget {
   final StatefulNavigationShell navigationShell;

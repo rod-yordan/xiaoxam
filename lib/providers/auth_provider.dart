@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lucky/models/auth_model.dart';
-import 'package:lucky/services/auth_service.dart';
+import 'package:xiaoxa/models/auth_model.dart';
+import 'package:xiaoxa/services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();

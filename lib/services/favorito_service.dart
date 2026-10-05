@@ -1,7 +1,7 @@
 // services/favorito_service.dart - ACTUALIZADO
 import 'package:dio/dio.dart';
-import 'package:lucky/utils/dio_client.dart';
-import 'package:lucky/services/auth_service.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
+import 'package:xiaoxa/services/auth_service.dart';
 
 class FavoritoService {
   final Dio _dio = ApiClient.dio;

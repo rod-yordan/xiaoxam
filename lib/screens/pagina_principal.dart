@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucky/models/banner_model.dart';
-import 'package:lucky/models/genero_model.dart';
-import 'package:lucky/models/producto_model.dart';
-import 'package:lucky/providers/banner_provider.dart';
-import 'package:lucky/screens/producto_card.dart';
-import 'package:lucky/services/genero_service.dart';
-import 'package:lucky/services/producto_service.dart';
+import 'package:xiaoxa/models/banner_model.dart';
+import 'package:xiaoxa/models/genero_model.dart';
+import 'package:xiaoxa/models/producto_model.dart';
+import 'package:xiaoxa/providers/banner_provider.dart';
+import 'package:xiaoxa/screens/producto_card.dart';
+import 'package:xiaoxa/services/genero_service.dart';
+import 'package:xiaoxa/services/producto_service.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
-import 'package:lucky/providers/carrito_provider.dart';
+import 'package:xiaoxa/providers/carrito_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class PaginaPrincipal extends StatefulWidget {

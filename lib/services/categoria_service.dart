@@ -1,6 +1,6 @@
 // lib/services/categoria_service.dart
 import 'package:dio/dio.dart';
-import 'package:lucky/utils/dio_client.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
 
 class CategoriaService {
   final Dio _dio = ApiClient.dio;

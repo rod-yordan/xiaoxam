@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:lucky/utils/api_config.dart';
+import 'package:xiaoxa/utils/api_config.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 
 class PusherConfig {

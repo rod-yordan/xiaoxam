@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:lucky/models/auth_model.dart';
-import 'package:lucky/utils/dio_client.dart';
-import 'package:lucky/services/pref_service.dart';
+import 'package:xiaoxa/models/auth_model.dart';
+import 'package:xiaoxa/utils/dio_client.dart';
+import 'package:xiaoxa/services/pref_service.dart';
 
 class AuthService {
   final Dio _dio = ApiClient.dio;

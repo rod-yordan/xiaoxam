@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucky/services/checkout_service.dart';
+import 'package:xiaoxa/services/checkout_service.dart';
 
 class CheckoutProvider with ChangeNotifier {
   final CheckoutService _service = CheckoutService();
