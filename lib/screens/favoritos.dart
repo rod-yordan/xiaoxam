@@ -15,6 +15,9 @@ class Favoritos extends StatefulWidget {
 }
 
 class _FavoritosState extends State<Favoritos> {
+  static const double _headerHeight = 62;
+  static const double _hPad = 16;
+
   @override
   void initState() {
     super.initState();
@@ -35,74 +38,95 @@ class _FavoritosState extends State<Favoritos> {
       body: SafeArea(
         child: Column(
           children: [
-            // BARRA SUPERIOR
+            // ================= BARRA SUPERIOR =================
             Container(
               color: Colors.white,
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 7,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const SizedBox(width: 40),
-                        const Text(
-                          'Mis Favoritos',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                  SizedBox(
+                    height: _headerHeight,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Flecha de retroceso
+                          GestureDetector(
+                            onTap: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go('/');
+                              }
+                            },
+                            child: const Icon(
+                              Symbols.arrow_back,
+                              size: 24,
+                              color: Colors.black,
+                            ),
                           ),
-                        ),
-                        Consumer<CarritoProvider>(
-                          builder: (context, carritoProvider, child) {
-                            final cantidadTotal = carritoProvider.cantidadTotal;
-                            return Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    context.go('/carrito');
-                                  },
-                                  icon: const Icon(
-                                    Symbols.shopping_bag,
-                                    size: 28,
-                                    color: Colors.black,
+                          const SizedBox(width: 12),
+
+                          // Título al lado de la flecha
+                          const Text(
+                            'Favoritos',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          // Empuja el carrito a la derecha
+                          const Spacer(),
+
+                          // Carrito
+                          Consumer<CarritoProvider>(
+                            builder: (context, carritoProvider, child) {
+                              final cantidadTotal =
+                                  carritoProvider.cantidadTotal;
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => context.go('/carrito'),
+                                    child: const Icon(
+                                      Symbols.local_mall,
+                                      size: 24,
+                                      color: Colors.black,
+                                    ),
                                   ),
-                                ),
-                                if (cantidadTotal > 0)
-                                  Positioned(
-                                    right: 2,
-                                    top: 4,
-                                    child: Container(
-                                      width: 16,
-                                      height: 16,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFED1C24),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          cantidadTotal > 9
-                                              ? '9+'
-                                              : cantidadTotal.toString(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
+                                  if (cantidadTotal > 0)
+                                    Positioned(
+                                      right: -3,
+                                      top: -3,
+                                      child: Container(
+                                        width: 13,
+                                        height: 13,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFED1C24),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            cantidadTotal > 9
+                                                ? '9+'
+                                                : cantidadTotal.toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 7,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
                                           ),
-                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Container(height: 1, color: Colors.black12),
@@ -123,7 +147,7 @@ class _FavoritosState extends State<Favoritos> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Symbols.favorite, // 👈 CAMBIADO A Symbols
+                            Symbols.favorite,
                             size: 80,
                             color: Colors.grey.shade300,
                           ),
@@ -150,15 +174,21 @@ class _FavoritosState extends State<Favoritos> {
                   }
 
                   return Container(
-                    color: const Color(0xFFF7F7F7),
+                    color: Colors.white,
                     child: GridView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _hPad,
+                        vertical: 16,
+                      ),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: ClampingScrollPhysics(),
+                      ),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
-                            childAspectRatio: 170 / 320,
+                            childAspectRatio: 170 / 322,
                           ),
                       itemCount: productosFavoritos.length,
                       itemBuilder: (context, index) {
@@ -179,6 +209,7 @@ class _FavoritosState extends State<Favoritos> {
                               const SnackBar(
                                 content: Text('Eliminado de favoritos'),
                                 duration: Duration(seconds: 2),
+                                backgroundColor: Colors.black,
                               ),
                             );
                           },

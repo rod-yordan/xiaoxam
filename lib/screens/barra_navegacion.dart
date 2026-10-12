@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:material_symbols_icons/symbols.dart';  // <-- Importación correcta
+import 'package:material_symbols_icons/symbols.dart';
 
 class BarraNavegacion extends StatelessWidget {
   final int currentIndex;
@@ -15,27 +15,38 @@ class BarraNavegacion extends StatelessWidget {
       onTap: onTap,
       elevation: 8,
       backgroundColor: Colors.white,
+      // 👇 Ambos en negro (antes seleccionado negro y no seleccionado gris)
       selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.grey[600],
-      items: const [
+      unselectedItemColor: Colors.black,
+      selectedLabelStyle: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.normal,
+        color: Colors.black,
+      ),
+      items: [
         BottomNavigationBarItem(
-          icon: Icon(Symbols.home),  // <-- Ícono de inicio
+          icon: Icon(Symbols.home, fill: currentIndex == 0 ? 1 : 0),
           label: 'Inicio',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Symbols.grid_view),  // <-- Ícono para catálogo
+          icon: Icon(Symbols.grid_view, fill: currentIndex == 1 ? 1 : 0),
           label: 'Catálogo',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Symbols.confirmation_number),  // <-- Ícono para cupones
+          icon: Icon(Symbols.local_offer, fill: currentIndex == 2 ? 1 : 0),
           label: 'Cupones',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Symbols.favorite),  // <-- Ícono para favoritos
+          icon: Icon(Symbols.favorite, fill: currentIndex == 3 ? 1 : 0),
           label: 'Favoritos',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Symbols.person),  // <-- Ícono para cuenta (versión outline)
+          icon: Icon(Symbols.person, fill: currentIndex == 4 ? 1 : 0),
           label: 'Mi cuenta',
         ),
       ],

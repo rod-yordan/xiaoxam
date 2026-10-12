@@ -97,8 +97,8 @@ class _RegistroUsuarioState extends State<RegistroUsuario> {
                   const SizedBox(height: 24),
                   Center(
                     child: Image.asset(
-                      'logo.png',
-                      height: 34,
+                      'logo.jpeg',
+                      height: 38,
                       fit: BoxFit.contain,
                     ),
                   ),

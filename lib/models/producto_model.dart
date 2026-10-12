@@ -3,18 +3,17 @@ import 'variante_model.dart';
 class ProductoModel {
   final int id;
   final String titulo;
-  final String descripcion;
+  final List<String> detalles;
   final double precio;
-  final double? precioAntes;
+  final double? precioOferta;
   final int? descuento;
   final List<String> imagenes;
   final String imagenPrincipal;
   final String? categoria;
   final int? categoriaId;
-  final String? genero;
+  final String? marca;
   final List<String> tallas;
   final List<String> colores;
-  final String? marca;
   final int stock;
   final String? sku;
   final bool disponible;
@@ -24,18 +23,17 @@ class ProductoModel {
   ProductoModel({
     required this.id,
     required this.titulo,
-    required this.descripcion,
+    required this.detalles,
     required this.precio,
-    this.precioAntes,
+    this.precioOferta,
     this.descuento,
     required this.imagenes,
     required this.imagenPrincipal,
     this.categoria,
     this.categoriaId,
-    this.genero,
+    this.marca,
     required this.tallas,
     required this.colores,
-    this.marca,
     required this.stock,
     this.sku,
     required this.disponible,
@@ -44,6 +42,7 @@ class ProductoModel {
   });
 
   factory ProductoModel.fromJson(Map<String, dynamic> json) {
+    // ── Helpers seguros
     double toDouble(dynamic value) {
       if (value == null) return 0.0;
       if (value is double) return value;
@@ -52,32 +51,67 @@ class ProductoModel {
       return 0.0;
     }
 
+    double? toDoubleOrNull(dynamic value) {
+      if (value == null) return null;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
+    String toStr(dynamic value) {
+      if (value == null) return '';
+      if (value is String) return value;
+      if (value is num) return value.toString();
+      if (value is List && value.isNotEmpty) {
+        return value.first?.toString() ?? '';
+      }
+      return value.toString();
+    }
+
+    List<String> toStrList(dynamic value) {
+      if (value == null) return [];
+      if (value is! List) return [];
+      return value
+          .map((e) {
+            if (e is String) return e;
+            if (e is num) return e.toString();
+            if (e is Map) {
+              return (e['url'] ?? e['imagen'] ?? e['ruta'] ?? e['nombre'] ?? '')
+                  .toString();
+            }
+            return e?.toString() ?? '';
+          })
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+
     List<VarianteModel> variantes = [];
-    if (json['variantes'] != null) {
+    if (json['variantes'] != null && json['variantes'] is List) {
       variantes = (json['variantes'] as List)
-          .map((v) => VarianteModel.fromJson(v))
+          .where((v) => v is Map)
+          .map((v) => VarianteModel.fromJson(Map<String, dynamic>.from(v)))
           .toList();
     }
 
     return ProductoModel(
-      id: json['id_producto'] ?? json['id'] ?? 0,
-      titulo: json['nombre_producto'] ?? json['titulo'] ?? '',
-      descripcion: json['descripcion'] ?? '',
-      precio: toDouble(json['precio'] ?? 0),
-      precioAntes: toDouble(json['precio_oferta'] ?? json['precio_antes']),
-      descuento: json['descuento'],
-      imagenes: json['imagenes'] != null
-          ? List<String>.from(json['imagenes'])
-          : (json['imagen'] != null ? [json['imagen']] : []),
-      imagenPrincipal: json['imagen_principal'] ?? json['imagen'] ?? '',
-      categoria: json['categoria_nombre'] ?? json['categoria'],
+      id: (json['id_producto'] ?? json['id'] ?? 0) as int,
+      titulo: toStr(json['nombre_producto'] ?? json['titulo']),
+      detalles: toStrList(
+        json['detalles'] ?? json['descripcion'],
+      ), // 👈 acepta ambos
+      precio: toDouble(json['precio']),
+      precioOferta: toDoubleOrNull(json['precio_oferta']),
+      descuento: json['descuento'] is int ? json['descuento'] : null,
+      imagenes: toStrList(json['imagenes']),
+      imagenPrincipal: toStr(json['imagen_principal'] ?? json['imagen']),
+      categoria: toStr(json['categoria_nombre'] ?? json['categoria']),
       categoriaId: json['id_categoria'] ?? json['categoria_id'],
-      genero: json['genero_nombre'] ?? json['genero'],
-      tallas: List<String>.from(json['tallas'] ?? []),
-      colores: List<String>.from(json['colores'] ?? []),
-      marca: json['marca'],
-      stock: json['stock'] ?? 0,
-      sku: json['sku'],
+      marca: json['marca'] != null ? toStr(json['marca']) : null,
+      tallas: toStrList(json['tallas']),
+      colores: toStrList(json['colores']),
+      stock: (json['stock'] as num?)?.toInt() ?? 0,
+      sku: json['sku'] != null ? toStr(json['sku']) : null,
       disponible: json['disponible'] ?? true,
       enOferta: json['en_oferta'] ?? false,
       variantes: variantes,
@@ -88,18 +122,17 @@ class ProductoModel {
     return {
       'id': id,
       'titulo': titulo,
-      'descripcion': descripcion,
+      'detalles': detalles,
       'precio': precio,
-      'precio_antes': precioAntes,
+      'precio_oferta': precioOferta,
       'descuento': descuento,
       'imagenes': imagenes,
       'imagen_principal': imagenPrincipal,
       'categoria': categoria,
       'categoria_id': categoriaId,
-      'genero': genero,
+      'marca': marca,
       'tallas': tallas,
       'colores': colores,
-      'marca': marca,
       'stock': stock,
       'sku': sku,
       'disponible': disponible,
@@ -112,18 +145,17 @@ class ProductoModel {
     return {
       'id': id,
       'titulo': titulo,
-      'descripcion': descripcion,
+      'detalles': detalles,
       'precio': precio,
-      'precioAntes': precioAntes,
+      'precio_oferta': precioOferta,
       'descuento': descuento,
       'imagenes': imagenes,
       'imagen_principal': imagenPrincipal,
       'categoria': categoria,
       'categoria_id': categoriaId,
-      'genero': genero,
+      'marca': marca,
       'tallas': tallas,
       'colores': colores,
-      'marca': marca,
       'stock': stock,
       'sku': sku,
       'disponible': disponible,
@@ -150,6 +182,58 @@ class ProductoModel {
     return variantes
         .where((v) => v.talla == talla && v.stock > 0 && v.color != null)
         .map((v) => v.color!)
+        .toSet()
         .toList();
+  }
+
+  VarianteModel? getVarianteById(int idVariante) {
+    try {
+      return variantes.firstWhere((v) => v.id == idVariante);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  List<Map<String, String>> getColoresConHex() {
+    final Map<String, Map<String, String>> unicos = {};
+
+    for (final v in variantes) {
+      if (v.color == null || v.color!.isEmpty) continue;
+      if (unicos.containsKey(v.color)) continue;
+
+      unicos[v.color!] = {'nombre': v.color!, 'hex': v.colorHex ?? '#cccccc'};
+    }
+
+    return unicos.values.toList();
+  }
+
+  String? getPrimeraImagenPorColor(String color) {
+    for (final v in variantes) {
+      if (v.color?.toLowerCase() == color.toLowerCase()) {
+        if (v.imagenes.isNotEmpty) {
+          return v.imagenes.first;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<String> getImagenesPorColor(String color) {
+    final List<String> resultado = [];
+    for (final v in variantes) {
+      if (v.color?.toLowerCase() == color.toLowerCase()) {
+        resultado.addAll(v.imagenes);
+      }
+    }
+    return resultado.toSet().toList();
+  }
+
+  bool tieneStockCombinacion(String talla, String color) {
+    return variantes.any(
+      (v) =>
+          v.talla == talla &&
+          v.color?.toLowerCase() == color.toLowerCase() &&
+          v.stock > 0,
+    );
   }
 }

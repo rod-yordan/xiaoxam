@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 
 class CategoriaCard extends StatelessWidget {
   final String titulo;
-  final String imagenPath;
+  final String? imagenPath; // 👈 ahora puede ser null
   final VoidCallback onTap;
 
   const CategoriaCard({
     super.key,
     required this.titulo,
-    required this.imagenPath,
+    this.imagenPath, // 👈 ya no required
     required this.onTap,
   });
 
@@ -33,39 +33,61 @@ class CategoriaCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Imagen de fondo que ocupa toda la tarjeta
-              Image.asset(
-                imagenPath,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey.shade200,
-                    child: const Center(
-                      child: Icon(
-                        Icons.broken_image,
-                        color: Colors.grey,
-                        size: 40,
+              // Imagen de fondo (red o placeholder)
+              if (imagenPath != null && imagenPath!.isNotEmpty)
+                Image.network(
+                  imagenPath!,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: Colors.grey.shade200,
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFED1C24),
+                          strokeWidth: 2,
+                        ),
                       ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey.shade200,
+                      child: const Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                          size: 40,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              else
+                // Placeholder mientras carga la URL del primer producto
+                Container(
+                  color: Colors.grey.shade200,
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFED1C24),
+                      strokeWidth: 2,
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
 
               // Franja semitransparente en la parte inferior
               Positioned(
-                bottom: 12, // Separada del borde inferior
-                left: 12, // Separada del borde izquierdo
-                right: 12, // Separada del borde derecho
+                bottom: 12,
+                left: 12,
+                right: 12,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
-                    vertical: 4, // Solo un poco más que el texto
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85), // Semitransparente
-                    borderRadius: BorderRadius.circular(
-                      4,
-                    ), // Opcional: bordes ligeramente redondeados
+                    color: Colors.white.withAlpha(217), // 0.85 opacidad
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     titulo,

@@ -1,9 +1,12 @@
-// screens/catalogo_parte1.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:xiaoxa/providers/generos_provider.dart';
 import 'package:xiaoxa/screens/categoria_card.dart';
+import 'package:xiaoxa/providers/categoria_provider.dart';
+import 'package:xiaoxa/services/producto_service.dart';
+import 'package:xiaoxa/utils/api_config.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:xiaoxa/providers/carrito_provider.dart';
 
 class CatalogoParte1 extends StatefulWidget {
   const CatalogoParte1({super.key});
@@ -13,31 +16,66 @@ class CatalogoParte1 extends StatefulWidget {
 }
 
 class _CatalogoParte1State extends State<CatalogoParte1> {
+  final ProductoService _productoService = ProductoService();
+
+  final Map<int, String> _imagenesCategorias = {};
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final generosProvider = Provider.of<GenerosProvider>(
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final categoriaProvider = Provider.of<CategoriaProvider>(
         context,
         listen: false,
       );
-      if (!generosProvider.cargados) {
-        generosProvider.cargarGeneros();
-      }
+      await categoriaProvider.cargarCategorias();
+      await _cargarImagenesDeCategorias(categoriaProvider.categorias);
     });
   }
 
-  // Mapa de imágenes locales para cada género (usando el nombre como key)
-  final Map<String, String> _imagenesGeneros = {
-    'hombre': 'assets/catalogo_hombre.jpg',
-    'mujer': 'assets/catalogo_mujer.jpg',
-    // Puedes agregar más según los géneros que tengas
-    'default': 'assets/catalogo_default.jpg',
-  };
+  Future<void> _cargarImagenesDeCategorias(
+    List<Map<String, dynamic>> categorias,
+  ) async {
+    for (final categoria in categorias) {
+      final idCategoria = categoria['id_categoria'];
+      if (idCategoria == null) continue;
 
-  String _getImagenParaGenero(String nombreGenero) {
-    final nombreLower = nombreGenero.toLowerCase();
-    return _imagenesGeneros[nombreLower] ?? _imagenesGeneros['default']!;
+      try {
+        final productos = await _productoService.getProductos(
+          page: 0,
+          limit: 1,
+          categoriaId: idCategoria is int
+              ? idCategoria
+              : int.tryParse(idCategoria.toString()),
+        );
+
+        if (productos.isNotEmpty) {
+          final imagenOriginal =
+              productos.first.imagenPrincipal?.toString().trim() ?? '';
+
+          final imagenUrl = imagenOriginal.replaceFirst(
+            '${ApiConfig.baseUrl}/productos/',
+            '${ApiConfig.apiUrl}/imagen/',
+          );
+
+          if (mounted) {
+            setState(() {
+              _imagenesCategorias[idCategoria is int
+                      ? idCategoria
+                      : int.parse(idCategoria.toString())] =
+                  imagenUrl;
+            });
+          }
+        }
+      } catch (e) {
+        // ignorar
+      }
+    }
+  }
+
+  String? _obtenerImagen(int? idCategoria) {
+    if (idCategoria == null) return null;
+    return _imagenesCategorias[idCategoria];
   }
 
   @override
@@ -52,88 +90,116 @@ class _CatalogoParte1State extends State<CatalogoParte1> {
               color: Colors.white,
               child: Column(
                 children: [
-                  const SizedBox(height: 16),
-                  const Align(
-                    alignment: Alignment.centerLeft,
+                  SizedBox(
+                    height: 62,
                     child: Padding(
-                      padding: EdgeInsets.only(left: 16.0),
-                      child: Text(
-                        'Catálogo',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Flecha
+                          GestureDetector(
+                            onTap: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go('/');
+                              }
+                            },
+                            child: const Icon(
+                              Symbols.arrow_back,
+                              size: 24,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Título al lado de la flecha
+                          const Text(
+                            'Catálogo',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          // Empuja el carrito a la derecha
+                          const Spacer(),
+
+                          // Carrito
+                          Consumer<CarritoProvider>(
+                            builder: (context, carritoProvider, child) {
+                              final cantidadTotal =
+                                  carritoProvider.cantidadTotal;
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => context.go('/carrito'),
+                                    child: const Icon(
+                                      Symbols.local_mall,
+                                      size: 24,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  if (cantidadTotal > 0)
+                                    Positioned(
+                                      right: -3,
+                                      top: -3,
+                                      child: Container(
+                                        width: 13,
+                                        height: 13,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFED1C24),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            cantidadTotal > 9
+                                                ? '9+'
+                                                : cantidadTotal.toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 7,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
                   Container(height: 1, color: Colors.black12),
                 ],
               ),
             ),
 
-            // ================= CONTENIDO PRINCIPAL =================
+            // ================= CONTENIDO =================
             Expanded(
               child: Container(
                 color: const Color(0xFFF7F7F7),
-                child: Consumer<GenerosProvider>(
-                  builder: (context, generosProvider, child) {
-                    // Mostrar loading mientras carga
-                    if (generosProvider.cargando && !generosProvider.cargados) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFFED1C24),
-                        ),
-                      );
-                    }
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Consumer<CategoriaProvider>(
+                    builder: (context, categoriaProvider, child) {
+                      if (categoriaProvider.isLoading) {
+                        return _cargandoGrid();
+                      }
 
-                    // Mostrar error si hay
-                    if (generosProvider.error != null) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 48,
-                              color: Colors.grey.shade400,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Error al cargar categorías',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                            const SizedBox(height: 8),
-                            ElevatedButton(
-                              onPressed: () {
-                                generosProvider.cargarGeneros(
-                                  forzarRecarga: true,
-                                );
-                              },
-                              child: const Text('Reintentar'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+                      if (categoriaProvider.categorias.isEmpty) {
+                        return const Center(
+                          child: Text('No hay categorías disponibles'),
+                        );
+                      }
 
-                    // ✅ AHORA USA TODOS LOS GÉNEROS
-                    final generos = generosProvider.generos;
-
-                    // Si no hay géneros, mostrar mensaje
-                    if (generos.isEmpty) {
-                      return Center(
-                        child: Text(
-                          'No hay categorías disponibles',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      );
-                    }
-
-                    // Mostrar grid con TODOS los géneros de la API
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: GridView.builder(
+                      return GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
@@ -141,34 +207,56 @@ class _CatalogoParte1State extends State<CatalogoParte1> {
                               mainAxisSpacing: 16,
                               childAspectRatio: 0.75,
                             ),
-                        itemCount: generos.length,
+                        itemCount: categoriaProvider.categorias.length,
                         itemBuilder: (context, index) {
-                          final genero = generos[index];
+                          final categoria = categoriaProvider.categorias[index];
+                          final nombreCategoria =
+                              categoria['nombre_categoria'] ?? '';
+                          final idCategoria = categoria['id_categoria'];
+
                           return CategoriaCard(
-                            titulo: genero.nombreGenero,
-                            imagenPath: _getImagenParaGenero(
-                              genero.nombreGenero,
-                            ),
+                            titulo: nombreCategoria,
+                            imagenPath: _obtenerImagen(idCategoria),
                             onTap: () {
                               context.push(
                                 '/catalogo-parte2',
                                 extra: {
-                                  'genero': genero.nombreGenero,
-                                  'generoId': genero.idGenero,
+                                  'categoria': nombreCategoria,
+                                  'categoriaId': idCategoria,
                                 },
                               );
                             },
                           );
                         },
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _cargandoGrid() {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: 4,
+      itemBuilder: (context, index) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        );
+      },
     );
   }
 }

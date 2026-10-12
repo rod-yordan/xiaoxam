@@ -73,8 +73,8 @@ class _IniciarSesionState extends State<IniciarSesion> {
                       const SizedBox(height: 24),
                       Center(
                         child: Image.asset(
-                          'assets/logo.png',
-                          height: 34,
+                          'assets/logo.jpeg',
+                          height: 38,
                           fit: BoxFit.contain,
                         ),
                       ),

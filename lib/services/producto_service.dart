@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:xiaoxa/models/producto_model.dart';
 import 'package:xiaoxa/models/variante_model.dart';
+import 'package:xiaoxa/models/navbar_item_model.dart';
 import 'package:xiaoxa/utils/dio_client.dart';
 
 class ProductoService {
@@ -9,26 +10,22 @@ class ProductoService {
   static bool tieneMasPaginas = true;
   static int totalProductos = 0;
 
-  // Obtener productos con paginación
+  // Listar productos
   Future<List<ProductoModel>> getProductos({
     int page = 0,
     int limit = 10,
     String? categoria,
     int? categoriaId,
-    String? genero,
-    int? generoId,
     String? talla,
     String? color,
-    double? precioMin,
-    double? precioMax,
     String? busqueda,
     String? orden = 'created_at',
     String? direccion = 'desc',
     bool soloConStock = true,
-    bool? enOferta,
+    bool? promocion,
+    bool? nuevo,
   }) async {
     try {
-      // Construir query parameters
       Map<String, dynamic> queryParams = {
         'page': page,
         'limit': limit,
@@ -37,39 +34,16 @@ class ProductoService {
         'con_stock': soloConStock,
       };
 
-      // 👇 PRIORIZAR categoriaId sobre categoria (nombre)
       if (categoriaId != null) {
         queryParams['categoria'] = categoriaId;
       } else if (categoria != null && categoria.isNotEmpty) {
         queryParams['categoria'] = categoria;
       }
 
-      if (generoId != null) {
-        queryParams['genero'] = generoId;
-      } else if (genero != null && genero.isNotEmpty) {
-        queryParams['genero'] = genero;
-      }
-
-      if (enOferta != null) {
-        queryParams['en_oferta'] = enOferta;
-      }
-
-      if (talla != null && talla.isNotEmpty) {
-        queryParams['talla'] = talla;
-      }
-
-      if (color != null && color.isNotEmpty) {
-        queryParams['color'] = color;
-      }
-
-      if (precioMin != null) {
-        queryParams['precio_min'] = precioMin;
-      }
-
-      if (precioMax != null) {
-        queryParams['precio_max'] = precioMax;
-      }
-
+      if (promocion != null) queryParams['promocion'] = promocion;
+      if (nuevo != null) queryParams['nuevo'] = nuevo;
+      if (talla != null && talla.isNotEmpty) queryParams['talla'] = talla;
+      if (color != null && color.isNotEmpty) queryParams['color'] = color;
       if (busqueda != null && busqueda.isNotEmpty) {
         queryParams['busqueda'] = busqueda;
       }
@@ -86,7 +60,6 @@ class ProductoService {
           final List<dynamic> lista = response.data['data'];
           productos.addAll(lista.map((e) => ProductoModel.fromJson(e)));
 
-          // Actualizar estado de paginación
           paginaActual = response.data['current_page'] ?? page;
           totalProductos = response.data['total'] ?? 0;
           tieneMasPaginas =
@@ -100,12 +73,10 @@ class ProductoService {
       return [];
     } on DioException catch (e) {
       throw _handleError(e);
-    } catch (e) {
-      throw Exception('Error al cargar los productos: $e');
     }
   }
 
-  // Obtener variantes de un producto
+  // Variantes de un producto
   Future<List<VarianteModel>> getVariantes(int productoId) async {
     try {
       final response = await _dio.get('/productos/$productoId/variantes');
@@ -121,7 +92,7 @@ class ProductoService {
     }
   }
 
-  // Obtener un producto por ID
+  // Producto por ID
   Future<ProductoModel> getProductoById(int id) async {
     try {
       final response = await _dio.get('/productos/$id');
@@ -136,67 +107,7 @@ class ProductoService {
     }
   }
 
-  // Obtener productos recomendados con filtros
-  Future<List<ProductoModel>> getProductosRecomendados({
-    int limit = 10,
-    Map<String, dynamic>? filtros,
-  }) async {
-    try {
-      final queryParams = <String, dynamic>{'limit': limit};
-
-      if (filtros != null) {
-        filtros.forEach((key, value) {
-          queryParams[key] = value.toString();
-        });
-      }
-
-      final response = await _dio.get(
-        '/productos/recomendados',
-        queryParameters: queryParams,
-      );
-
-      if (response.data['success'] == true) {
-        final List<dynamic> lista = response.data['data'] ?? [];
-        return lista.map((e) => ProductoModel.fromJson(e)).toList();
-      }
-
-      return [];
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  // Obtener productos populares con filtros
-  Future<List<ProductoModel>> getProductosPopulares({
-    int limit = 10,
-    Map<String, dynamic>? filtros,
-  }) async {
-    try {
-      final queryParams = <String, dynamic>{'limit': limit};
-
-      if (filtros != null) {
-        filtros.forEach((key, value) {
-          queryParams[key] = value.toString();
-        });
-      }
-
-      final response = await _dio.get(
-        '/productos/populares',
-        queryParameters: queryParams,
-      );
-
-      if (response.data['success'] == true) {
-        final List<dynamic> lista = response.data['data'] ?? [];
-        return lista.map((e) => ProductoModel.fromJson(e)).toList();
-      }
-
-      return [];
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  // Obtener productos en oferta
+  // Productos en oferta
   Future<List<ProductoModel>> getProductosEnOferta({
     int page = 0,
     int limit = 10,
@@ -351,42 +262,14 @@ class ProductoService {
     }
   }
 
-  // Filtrar por rango de precio
-  Future<List<ProductoModel>> getProductosPorRangoPrecio({
-    required double min,
-    required double max,
-    int page = 0,
-    int limit = 10,
-    Map<String, dynamic>? filtros,
-  }) async {
+  // Items del navbar
+  Future<List<NavbarItem>> getNavbarItems() async {
     try {
-      final queryParams = <String, dynamic>{
-        'min': min,
-        'max': max,
-        'page': page,
-        'limit': limit,
-      };
-
-      if (filtros != null) {
-        filtros.forEach((key, value) {
-          queryParams[key] = value.toString();
-        });
-      }
-
-      final response = await _dio.get(
-        '/productos/rango-precio',
-        queryParameters: queryParams,
-      );
+      final response = await _dio.get('/navbar');
 
       if (response.data['success'] == true) {
-        final List<ProductoModel> productos = [];
-
-        if (response.data['data'] != null) {
-          final List<dynamic> lista = response.data['data'];
-          productos.addAll(lista.map((e) => ProductoModel.fromJson(e)));
-        }
-
-        return productos;
+        final List<dynamic> lista = response.data['data'] ?? [];
+        return lista.map((e) => NavbarItem.fromJson(e)).toList();
       }
 
       return [];

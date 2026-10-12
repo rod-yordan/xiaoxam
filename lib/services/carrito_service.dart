@@ -68,7 +68,8 @@ class CarritoService {
           'cantidad': cantidad,
         },
       );
-
+      print('=== RESPUESTA DEL BACKEND ===');
+      print(response.data.toString());
       if (response.data['success'] == true && response.data['data'] != null) {
         return CarritoModel.fromJson(response.data['data']);
       }

@@ -1,9 +1,9 @@
 // screens/detalles_producto.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:xiaoxa/providers/auth_provider.dart';
 import 'package:xiaoxa/providers/favoritos_provider.dart';
-import 'package:xiaoxa/utils/api_config.dart';
 import 'package:provider/provider.dart';
 import 'package:xiaoxa/providers/carrito_provider.dart';
 import 'package:xiaoxa/models/producto_model.dart';
@@ -20,112 +20,161 @@ class DetallesProducto extends StatefulWidget {
 }
 
 class _DetallesProductoState extends State<DetallesProducto> {
-  String? _tallaSeleccionada;
-  String? _colorSeleccionado;
-  int _paginaActual = 0;
-  final PageController _pageController = PageController();
-
-  // Convertir el Map a ProductoModel para facilitar el acceso
   late ProductoModel _producto;
   VarianteModel? _varianteSeleccionada;
 
-  // Listas dinámicas basadas en las variantes del producto
-  List<String> get _tallasDisponibles {
-    return _producto.tallas;
-  }
+  String? _colorSeleccionado;
+  String? _tallaSeleccionada;
+  int _paginaActual = 0;
+  final PageController _pageController = PageController();
 
-  List<String> get _coloresDisponibles {
-    return _producto.colores;
-  }
-
-  // Obtener colores disponibles para la talla seleccionada
-  List<String> get _coloresPorTalla {
-    if (_tallaSeleccionada == null) return _coloresDisponibles;
-    return _producto.getColoresPorTalla(_tallaSeleccionada!);
-  }
-
-  // Verificar si la combinación talla/color tiene stock
-  bool get _combinacionDisponible {
-    if (_tallaSeleccionada == null) return false;
-
-    _varianteSeleccionada = _producto.getVariante(
-      talla: _tallaSeleccionada!,
-      color: _colorSeleccionado,
-    );
-
-    return _varianteSeleccionada != null && _varianteSeleccionada!.disponible;
-  }
+  bool _showScrollIndicator = false;
+  Timer? _indicatorTimer;
 
   @override
   void initState() {
     super.initState();
-    // Inicializar el modelo
     _producto = ProductoModel.fromJson(widget.producto);
 
-    // Seleccionar primera talla disponible por defecto
-    if (_producto.tallas.isNotEmpty) {
-      _tallaSeleccionada = _producto.tallas.first;
-
-      // Seleccionar primer color disponible para esa talla
-      final colores = _producto.getColoresPorTalla(_tallaSeleccionada!);
-      if (colores.isNotEmpty) {
-        _colorSeleccionado = colores.first;
-      }
-    }
-  }
-
-  // GETTER - Incluye imagen principal y galería
-  List<String> get imagenesProducto {
-    List<String> todasLasImagenes = [];
-
-    // 1. Agregar imagen principal (si existe)
-    if (_producto.imagenPrincipal.isNotEmpty) {
-      String imgPrincipal = _producto.imagenPrincipal.replaceFirst(
-        '${ApiConfig.baseUrl}/productos/',
-        '${ApiConfig.apiUrl}/imagen/',
+    if (_producto.variantes.isNotEmpty) {
+      final primeraConStock = _producto.variantes.firstWhere(
+        (v) => v.stock > 0,
+        orElse: () => _producto.variantes.first,
       );
-      todasLasImagenes.add(imgPrincipal);
+
+      _colorSeleccionado = primeraConStock.color;
+      _tallaSeleccionada = primeraConStock.talla;
+      _varianteSeleccionada = primeraConStock;
     }
-
-    // 2. Agregar imágenes de galería (sin duplicar la principal)
-    for (var url in _producto.imagenes) {
-      String urlTransformada = url.replaceFirst(
-        '${ApiConfig.baseUrl}/productos/',
-        '${ApiConfig.apiUrl}/imagen/',
-      );
-      if (!todasLasImagenes.contains(urlTransformada)) {
-        todasLasImagenes.add(urlTransformada);
-      }
-    }
-
-    return todasLasImagenes;
-  }
-
-  // TRANSFORMAR IMAGEN PRINCIPAL (por si se usa)
-  String get imagenPrincipalTransformada {
-    return _producto.imagenPrincipal.replaceFirst(
-      '${ApiConfig.baseUrl}/productos/',
-      '${ApiConfig.apiUrl}/imagen/',
-    );
-  }
-
-  String _formatearPrecio(dynamic precio) {
-    if (precio == null) return '';
-
-    double valor = precio is int
-        ? precio.toDouble()
-        : (precio is double ? precio : double.tryParse(precio.toString()) ?? 0);
-
-    return valor.toStringAsFixed(2);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _indicatorTimer?.cancel();
     super.dispose();
   }
 
-  // Método para mostrar el overlay de confirmación
+  List<String> get _imagenesActuales {
+    if (_varianteSeleccionada != null &&
+        _varianteSeleccionada!.imagenes.isNotEmpty) {
+      return _varianteSeleccionada!.imagenes;
+    }
+
+    if (_colorSeleccionado != null) {
+      final porColor = _producto.getImagenesPorColor(_colorSeleccionado!);
+      if (porColor.isNotEmpty) return porColor;
+    }
+
+    if (_producto.imagenPrincipal.isNotEmpty) {
+      return [_producto.imagenPrincipal];
+    }
+    return _producto.imagenes;
+  }
+
+  List<String> get _imagenesTodas {
+    final todas = <String>[];
+    final vistas = <String>{};
+
+    for (final variante in _producto.variantes) {
+      for (final img in variante.imagenes) {
+        if (!vistas.contains(img)) {
+          vistas.add(img);
+          todas.add(img);
+        }
+      }
+    }
+
+    if (todas.isEmpty && _producto.imagenPrincipal.isNotEmpty) {
+      todas.add(_producto.imagenPrincipal);
+    }
+
+    return todas;
+  }
+
+  void _onScrollActivity() {
+    if (mounted) setState(() => _showScrollIndicator = true);
+    _indicatorTimer?.cancel();
+    _indicatorTimer = Timer(const Duration(milliseconds: 1000), () {
+      if (mounted) setState(() => _showScrollIndicator = false);
+    });
+  }
+
+  void _irAPrimeraImagenDeColor(String color) {
+    final imagenesColor = _producto.getImagenesPorColor(color);
+    if (imagenesColor.isEmpty) return;
+
+    final primera = imagenesColor.first;
+    final index = _imagenesTodas.indexOf(primera);
+
+    if (index >= 0 && _pageController.hasClients) {
+      _pageController.jumpToPage(index);
+    }
+  }
+
+  String _formatearPrecio(dynamic precio) {
+    if (precio == null) return '';
+    double valor = precio is int
+        ? precio.toDouble()
+        : (precio is double ? precio : double.tryParse(precio.toString()) ?? 0);
+    return valor.toStringAsFixed(2);
+  }
+
+  void _seleccionarColor(String color) {
+    setState(() {
+      _colorSeleccionado = color;
+
+      String? tallaEncontrada;
+      VarianteModel? varianteEncontrada;
+
+      for (final talla in _producto.tallas) {
+        final v = _varianteDe(color, talla);
+        if (v != null && v.stock > 0) {
+          tallaEncontrada = talla;
+          varianteEncontrada = v;
+          break;
+        }
+      }
+
+      if (varianteEncontrada == null) {
+        for (final talla in _producto.tallas) {
+          final v = _varianteDe(color, talla);
+          if (v != null) {
+            tallaEncontrada = talla;
+            varianteEncontrada = v;
+            break;
+          }
+        }
+      }
+
+      _tallaSeleccionada = tallaEncontrada;
+      _varianteSeleccionada = varianteEncontrada;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _irAPrimeraImagenDeColor(color);
+    });
+  }
+
+  void _seleccionarTalla(VarianteModel variante) {
+    if (variante.stock <= 0) return;
+    setState(() {
+      _tallaSeleccionada = variante.talla;
+      _varianteSeleccionada = variante;
+    });
+  }
+
+  VarianteModel? _varianteDe(String color, String talla) {
+    try {
+      return _producto.variantes.firstWhere(
+        (v) =>
+            v.color?.toLowerCase() == color.toLowerCase() && v.talla == talla,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _mostrarMensajeConfirmacion(BuildContext context) {
     final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
@@ -145,7 +194,7 @@ class _DetallesProductoState extends State<DetallesProducto> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
@@ -174,7 +223,6 @@ class _DetallesProductoState extends State<DetallesProducto> {
     });
   }
 
-  // Método para verificar si el usuario está logueado
   void _verificarUsuarioYAgregarCarrito(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -192,7 +240,7 @@ class _DetallesProductoState extends State<DetallesProducto> {
     _agregarAlCarrito(context);
   }
 
-  void _agregarAlCarrito(BuildContext context) {
+  Future<void> _agregarAlCarrito(BuildContext context) async {
     final carritoProvider = Provider.of<CarritoProvider>(
       context,
       listen: false,
@@ -203,107 +251,127 @@ class _DetallesProductoState extends State<DetallesProducto> {
       'id_variante': _varianteSeleccionada?.id,
       'titulo': _producto.titulo,
       'precio': _producto.precio,
-      'precioAntes': _producto.precioAntes,
+      'precio_oferta': _producto.precioOferta,
       'descuento': _producto.descuento,
-      'imagenes': _producto.imagenes.map((url) {
-        return url.replaceFirst(
-          '${ApiConfig.baseUrl}/productos/',
-          '${ApiConfig.apiUrl}/imagen/',
-        );
-      }).toList(),
-      'imagen_principal': _producto.imagenPrincipal.replaceFirst(
-        '${ApiConfig.baseUrl}/productos/',
-        '${ApiConfig.apiUrl}/imagen/',
-      ),
+      'imagenes': _imagenesActuales,
+      'imagen_principal': _imagenesActuales.isNotEmpty
+          ? _imagenesActuales.first
+          : '',
       'talla': _tallaSeleccionada,
       'color': _colorSeleccionado,
       'cantidad': 1,
     };
 
-    carritoProvider.agregarProducto(context, productoCarrito);
-    _mostrarMensajeConfirmacion(context);
+    await carritoProvider.agregarProducto(context, productoCarrito);
+
+    if (carritoProvider.error != null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${carritoProvider.error}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (context.mounted) {
+      _mostrarMensajeConfirmacion(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     int descuentoPorcentaje = _producto.descuento ?? 0;
-    bool tienePrecioAnterior = _producto.precioAntes != null;
+    bool tieneOferta = _producto.precioOferta != null;
+    final imagenes = _imagenesTodas;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // ================= BARRA SUPERIOR =================
+            // ============ BARRA SUPERIOR ============
             Container(
               color: Colors.white,
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 7,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            context.pop();
-                          },
-                          child: const Icon(
-                            Icons.arrow_back,
-                            size: 24,
-                            color: Colors.black,
+                  SizedBox(
+                    height: 62,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () => context.pop(),
+                            child: const Icon(
+                              Symbols.arrow_back,
+                              size: 24,
+                              color: Colors.black,
+                            ),
                           ),
-                        ),
-                        Consumer<CarritoProvider>(
-                          builder: (context, carritoProvider, child) {
-                            final cantidadTotal = carritoProvider.cantidadTotal;
-                            return Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    context.push('/carrito');
-                                  },
-                                  icon: const Icon(
-                                    Symbols.shopping_bag,
-                                    size: 28,
-                                    color: Colors.black,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _producto.titulo,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Consumer<CarritoProvider>(
+                            builder: (context, carritoProvider, child) {
+                              final cantidadTotal =
+                                  carritoProvider.cantidadTotal;
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => context.push('/carrito'),
+                                    child: const Icon(
+                                      Symbols.local_mall,
+                                      size: 24,
+                                      color: Colors.black,
+                                    ),
                                   ),
-                                ),
-                                if (cantidadTotal > 0)
-                                  Positioned(
-                                    right: 2,
-                                    top: 4,
-                                    child: Container(
-                                      width: 16,
-                                      height: 16,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFED1C24),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          cantidadTotal > 9
-                                              ? '9+'
-                                              : cantidadTotal.toString(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
+                                  if (cantidadTotal > 0)
+                                    Positioned(
+                                      right: -3,
+                                      top: -3,
+                                      child: Container(
+                                        width: 13,
+                                        height: 13,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFED1C24),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            cantidadTotal > 9
+                                                ? '9+'
+                                                : cantidadTotal.toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 7,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
                                           ),
-                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Container(height: 1, color: Colors.black12),
@@ -311,101 +379,102 @@ class _DetallesProductoState extends State<DetallesProducto> {
               ),
             ),
 
-            // ================= CONTENIDO =================
+            // ============ CONTENIDO ============
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Imagen del producto
+                    // ---- Galería ----
                     SizedBox(
                       height: 500,
                       width: double.infinity,
                       child: Stack(
                         children: [
-                          PageView.builder(
-                            controller: _pageController,
-                            itemCount: imagenesProducto.length,
-                            onPageChanged: (index) {
-                              setState(() {
-                                _paginaActual = index;
-                              });
+                          NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              if (notification is ScrollStartNotification ||
+                                  notification is ScrollUpdateNotification) {
+                                _onScrollActivity();
+                              }
+                              return false;
                             },
-                            itemBuilder: (context, index) {
-                              return Container(
-                                color: Colors.white,
-                                child: Image.network(
-                                  imagenesProducto[index],
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                        if (loadingProgress == null) {
-                                          return child;
-                                        }
-                                        return Center(
-                                          child: CircularProgressIndicator(
-                                            value:
-                                                loadingProgress
-                                                        .expectedTotalBytes !=
-                                                    null
-                                                ? loadingProgress
-                                                          .cumulativeBytesLoaded /
-                                                      loadingProgress
-                                                          .expectedTotalBytes!
-                                                : null,
+                            child: PageView.builder(
+                              controller: _pageController,
+                              itemCount: imagenes.length,
+                              onPageChanged: (index) =>
+                                  setState(() => _paginaActual = index),
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  color: Colors.white,
+                                  child: Image.network(
+                                    imagenes[index],
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: Icon(
+                                            Symbols.image,
+                                            size: 50,
+                                            color: Colors.grey,
                                           ),
-                                        );
-                                      },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey[200],
-                                      child: const Center(
-                                        child: Icon(
-                                          Symbols.image,
-                                          size: 50,
-                                          color: Colors.grey,
                                         ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                          Positioned(
-                            bottom: 16,
-                            left: 0,
-                            right: 0,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(imagenesProducto.length, (
-                                index,
-                              ) {
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  width: _paginaActual == index ? 10 : 6,
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    color: _paginaActual == index
-                                        ? Colors.white
-                                        : Colors.white.withAlpha(120),
-                                    borderRadius: BorderRadius.circular(10),
+                                      );
+                                    },
                                   ),
                                 );
-                              }),
+                              },
                             ),
                           ),
+
+                          if (imagenes.length > 1)
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: AnimatedOpacity(
+                                opacity: _showScrollIndicator ? 1 : 0,
+                                duration: const Duration(milliseconds: 200),
+                                child: SizedBox(
+                                  height: 5,
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final segmentWidth =
+                                          constraints.maxWidth /
+                                          imagenes.length;
+
+                                      return Stack(
+                                        children: [
+                                          AnimatedPositioned(
+                                            duration: const Duration(
+                                              milliseconds: 250,
+                                            ),
+                                            curve: Curves.easeOut,
+                                            left: segmentWidth * _paginaActual,
+                                            top: 0,
+                                            child: Container(
+                                              width: segmentWidth,
+                                              height: 5,
+                                              color: Colors.grey.shade700
+                                                  .withAlpha(140),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
 
-                    // Información del producto
+                    // ---- Info del producto ----
                     Container(
-                      color: const Color(0xFFF7F7F7),
+                      color: Colors.white,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
@@ -414,6 +483,18 @@ class _DetallesProductoState extends State<DetallesProducto> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (_producto.marca != null &&
+                                _producto.marca!.isNotEmpty)
+                              Text(
+                                _producto.marca!.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade500,
+                                  letterSpacing: 2,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            const SizedBox(height: 4),
                             Text(
                               _producto.titulo,
                               style: const TextStyle(fontSize: 20),
@@ -422,48 +503,52 @@ class _DetallesProductoState extends State<DetallesProducto> {
 
                             Row(
                               children: [
-                                Text(
-                                  'S/ ${_formatearPrecio(_producto.precio)}',
-                                  style: const TextStyle(
-                                    color: Color(0xFFED1C24),
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
+                                if (tieneOferta) ...[
+                                  Text(
+                                    'S/ ${_formatearPrecio(_producto.precioOferta)}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFED1C24),
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-
-                                if (tienePrecioAnterior) ...[
-                                  const SizedBox(height: 4),
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 8.0),
-                                    child: Stack(
-                                      children: [
-                                        Text(
-                                          'S/ ${_formatearPrecio(_producto.precioAntes)}',
-                                          style: TextStyle(
-                                            fontSize: 18,
+                                  const SizedBox(width: 8),
+                                  Stack(
+                                    children: [
+                                      Text(
+                                        'S/ ${_formatearPrecio(_producto.precio)}',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      Positioned.fill(
+                                        child: Align(
+                                          alignment: Alignment.center,
+                                          child: Container(
+                                            height: 1,
                                             color: Colors.grey.shade700,
                                           ),
                                         ),
-                                        Positioned.fill(
-                                          child: Align(
-                                            alignment: Alignment.center,
-                                            child: Container(
-                                              height: 1,
-                                              color: Colors.grey.shade700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                      ),
+                                    ],
+                                  ),
+                                ] else
+                                  Text(
+                                    'S/ ${_formatearPrecio(_producto.precio)}',
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ],
 
                                 if (descuentoPorcentaje > 0) ...[
                                   const SizedBox(width: 12),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 1,
+                                      horizontal: 8,
+                                      vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFED1C24),
@@ -481,170 +566,132 @@ class _DetallesProductoState extends State<DetallesProducto> {
                                 ],
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 16),
 
-                            if (_producto.descripcion.isNotEmpty) ...[
-                              const Text(
-                                'Descripción:',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _producto.descripcion,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-
-                            if (_coloresDisponibles.isNotEmpty) ...[
-                              const Text(
-                                'Color:',
-                                style: TextStyle(fontSize: 16),
+                            if (_producto.colores.isNotEmpty) ...[
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Color:',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  if (_colorSeleccionado != null)
+                                    Text(
+                                      _colorSeleccionado!,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                ],
                               ),
                               const SizedBox(height: 12),
-
                               Wrap(
-                                spacing: 8,
-                                children: _coloresPorTalla.map((colorNombre) {
-                                  bool seleccionado =
-                                      colorNombre == _colorSeleccionado;
-                                  bool tieneStock =
-                                      _producto
-                                          .getVariante(
-                                            talla: _tallaSeleccionada ?? '',
-                                            color: colorNombre,
-                                          )
-                                          ?.disponible ??
-                                      false;
+                                spacing: 12,
+                                children: _producto.getColoresConHex().map((c) {
+                                  final nombre = c['nombre']!;
+                                  final hex = c['hex']!;
+                                  final seleccionado =
+                                      nombre == _colorSeleccionado;
+                                  final claro = _esColorClaro(hex);
 
                                   return GestureDetector(
-                                    onTap: tieneStock
-                                        ? () {
-                                            setState(() {
-                                              _colorSeleccionado = colorNombre;
-                                            });
-                                          }
-                                        : null,
+                                    onTap: () => _seleccionarColor(nombre),
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
+                                      width: 40,
+                                      height: 40,
                                       decoration: BoxDecoration(
-                                        color: seleccionado
-                                            ? Colors.grey.shade300
-                                            : Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: seleccionado
-                                              ? Colors.black
-                                              : (tieneStock
-                                                    ? Colors.grey.shade500
-                                                    : Colors.grey.shade300),
-                                          width: 1,
-                                        ),
+                                        color: _hexToColor(hex),
+                                        shape: BoxShape.circle,
+                                        border: (claro && !seleccionado)
+                                            ? Border.all(
+                                                color: Colors.black12,
+                                                width: 1,
+                                              )
+                                            : null,
                                       ),
-                                      child: Text(
-                                        colorNombre,
-                                        style: TextStyle(
-                                          color: tieneStock
-                                              ? Colors.black
-                                              : Colors.grey.shade400,
-                                        ),
-                                      ),
+                                      child: seleccionado
+                                          ? Padding(
+                                              padding: const EdgeInsets.all(3),
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: claro
+                                                        ? Colors.grey.shade400
+                                                        : Colors.white,
+                                                    width: 2,
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          : null,
                                     ),
                                   );
                                 }).toList(),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 20),
                             ],
 
-                            if (_tallasDisponibles.isNotEmpty) ...[
+                            if (_producto.tallas.isNotEmpty) ...[
                               const Text(
                                 'Talla:',
-                                style: TextStyle(fontSize: 16),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(height: 12),
-
                               Wrap(
                                 spacing: 8,
-                                children: _tallasDisponibles.map((talla) {
-                                  bool seleccionada =
-                                      talla == _tallaSeleccionada;
-                                  bool tieneStock = _producto.tieneStockTalla(
+                                children: _producto.tallas.map((talla) {
+                                  final variante = _varianteDe(
+                                    _colorSeleccionado ?? '',
                                     talla,
                                   );
+                                  final disponible =
+                                      variante != null && variante.stock > 0;
+                                  final seleccionada =
+                                      talla == _tallaSeleccionada;
 
                                   return GestureDetector(
-                                    onTap: tieneStock
-                                        ? () {
-                                            setState(() {
-                                              _tallaSeleccionada = talla;
-                                              if (_colorSeleccionado != null) {
-                                                final coloresTalla = _producto
-                                                    .getColoresPorTalla(talla);
-                                                if (!coloresTalla.contains(
-                                                  _colorSeleccionado,
-                                                )) {
-                                                  _colorSeleccionado =
-                                                      coloresTalla.isNotEmpty
-                                                      ? coloresTalla.first
-                                                      : null;
-                                                }
-                                              }
-                                            });
-                                          }
+                                    onTap: disponible
+                                        ? () => _seleccionarTalla(variante)
                                         : null,
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
+                                      width: 48,
+                                      height: 40,
+                                      alignment: Alignment.center,
                                       decoration: BoxDecoration(
                                         color: seleccionada
-                                            ? Colors.grey.shade300
+                                            ? Colors.black
                                             : Colors.white,
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
                                           color: seleccionada
                                               ? Colors.black
-                                              : (tieneStock
-                                                    ? Colors.grey.shade500
-                                                    : Colors.grey.shade300),
-                                          width: 1,
+                                              : Colors.grey.shade400,
+                                          width: 1.5,
                                         ),
                                       ),
                                       child: Text(
                                         talla,
                                         style: TextStyle(
-                                          color: tieneStock
-                                              ? Colors.black
-                                              : Colors.grey.shade400,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: seleccionada
+                                              ? Colors.white
+                                              : Colors.black,
                                         ),
                                       ),
                                     ),
                                   );
                                 }).toList(),
                               ),
-                              const SizedBox(height: 32),
-                            ],
-
-                            if (_producto.stock > 0) ...[
-                              Text(
-                                'Stock disponible: ${_producto.stock} unidades',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.green[700],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
                             ],
                           ],
                         ),
@@ -655,7 +702,7 @@ class _DetallesProductoState extends State<DetallesProducto> {
               ),
             ),
 
-            // ================= BARRA INFERIOR CON BOTONES =================
+            // ============ BOTONES INFERIORES ============
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -663,115 +710,111 @@ class _DetallesProductoState extends State<DetallesProducto> {
                   top: BorderSide(color: Colors.black12, width: 1),
                 ),
               ),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Row(
                 children: [
-                  // Botón "A favoritos"
+                  // ===== Añadir a favoritos =====
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final favoritosProvider =
-                            Provider.of<FavoritosProvider>(
-                              context,
-                              listen: false,
-                            );
-                        final authProvider = Provider.of<AuthProvider>(
-                          context,
-                          listen: false,
-                        );
-
-                        final seAgrego = await favoritosProvider.toggleFavorito(
-                          widget.producto,
-                          authProvider,
-                        );
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              seAgrego
-                                  ? 'Agregado a favoritos'
-                                  : 'Eliminado de favoritos',
-                            ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(
-                            color: Colors.grey.shade500,
-                            width: 1,
-                          ),
-                        ),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                    child: SizedBox(
+                      height: 40,
                       child: Consumer<FavoritosProvider>(
                         builder: (context, favoritosProvider, child) {
                           final esFavorito = favoritosProvider.esFavorito(
                             widget.producto,
                           );
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                esFavorito
-                                    ? Symbols.favorite
-                                    : Symbols.favorite,
-                                fill: esFavorito ? 1 : 0,
-                                size: 20,
-                                color: esFavorito
-                                    ? Colors.black
-                                    : Colors.grey.shade600,
+
+                          return OutlinedButton(
+                            onPressed: () async {
+                              final authProvider = Provider.of<AuthProvider>(
+                                context,
+                                listen: false,
+                              );
+
+                              final seAgrego = await favoritosProvider
+                                  .toggleFavorito(
+                                    widget.producto,
+                                    authProvider,
+                                  );
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    seAgrego
+                                        ? 'Agregado a favoritos'
+                                        : 'Eliminado de favoritos',
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                esFavorito ? 'En favoritos' : 'A favoritos',
-                                style: const TextStyle(fontSize: 16),
+                              side: BorderSide(
+                                color: Colors.grey.shade400,
+                                width: 1.2,
                               ),
-                            ],
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                            ),
+                            child: Text(
+                              esFavorito
+                                  ? 'En favoritos'
+                                  : 'Añadir a favoritos',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                                height: 1.0,
+                              ),
+                            ),
                           );
                         },
                       ),
                     ),
                   ),
 
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 10),
 
-                  // Botón "Al carrito"
+                  // ===== Añadir a la bolsa =====
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: _combinacionDisponible
-                          ? () => _verificarUsuarioYAgregarCarrito(context)
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _combinacionDisponible
-                            ? const Color(0xFFED1C24)
-                            : Colors.grey.shade400,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      height: 40,
+                      child: ElevatedButton(
+                        onPressed:
+                            _varianteSeleccionada != null &&
+                                _varianteSeleccionada!.stock > 0
+                            ? () => _verificarUsuarioYAgregarCarrito(context)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              (_varianteSeleccionada != null &&
+                                  _varianteSeleccionada!.stock > 0)
+                              ? const Color(0xFFED1C24)
+                              : Colors.grey.shade400,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Symbols.shopping_bag,
-                            size: 20,
+                        child: Text(
+                          (_varianteSeleccionada != null &&
+                                  _varianteSeleccionada!.stock > 0)
+                              ? 'Añadir a la bolsa'
+                              : 'Sin stock',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                             color: Colors.white,
+                            height: 1.0,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _combinacionDisponible ? 'Al carrito' : 'Sin stock',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -782,5 +825,20 @@ class _DetallesProductoState extends State<DetallesProducto> {
         ),
       ),
     );
+  }
+
+  Color _hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    return Color(int.parse(hex, radix: 16));
+  }
+
+  bool _esColorClaro(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length != 6) return false;
+    final r = int.parse(hex.substring(0, 2), radix: 16);
+    final g = int.parse(hex.substring(2, 4), radix: 16);
+    final b = int.parse(hex.substring(4, 6), radix: 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 230;
   }
 }
