@@ -1,15 +1,36 @@
 // services/cupon_service.dart
 import 'package:dio/dio.dart';
 import 'package:xiaoxa/models/cupon_model.dart';
+import 'package:xiaoxa/services/auth_service.dart';
 import 'package:xiaoxa/utils/dio_client.dart';
 
 class CuponService {
   final Dio _dio = ApiClient.dio;
+  final AuthService _authService = AuthService();
 
-  /// Obtiene los cupones disponibles del usuario autenticado.
+  /// Adjunta el token si existe. Si no hay sesión, quita el header
+  /// para no arrastrar tokens de llamadas previas.
+  Future<void> _ensureToken() async {
+    try {
+      final token = await _authService.getStoredToken();
+      if (token != null && token.isNotEmpty) {
+        _dio.options.headers['Authorization'] = 'Bearer $token';
+      } else {
+        _dio.options.headers.remove('Authorization');
+      }
+    } catch (_) {
+      _dio.options.headers.remove('Authorization');
+    }
+  }
+
+  /// Obtiene los cupones disponibles.
+  /// - Si el usuario está logueado → solo los que NO ha usado
+  /// - Si NO está logueado → todos los activos
   /// GET /api/cupones
   Future<List<CuponModel>> cuponesDisponibles() async {
     try {
+      await _ensureToken();
+
       final response = await _dio.get('/cupones');
 
       if (response.data['success'] == true) {
@@ -23,11 +44,12 @@ class CuponService {
     }
   }
 
-  /// Aplica un cupón al carrito.
+  /// Aplica un cupón al carrito (requiere sesión).
   /// POST /api/carrito/cupon/aplicar
-  /// Devuelve un mapa con: descuento, subtotal, nuevo_total.
   Future<Map<String, dynamic>> aplicarCupon(String codigo) async {
     try {
+      await _ensureToken();
+
       final response = await _dio.post(
         '/carrito/cupon/aplicar',
         data: {'codigo_cupon': codigo},
@@ -53,10 +75,12 @@ class CuponService {
     }
   }
 
-  /// Quita el cupón aplicado.
+  /// Quita el cupón aplicado (requiere sesión).
   /// DELETE /api/carrito/cupon/quitar
   Future<void> quitarCupon() async {
     try {
+      await _ensureToken();
+
       await _dio.delete('/carrito/cupon/quitar');
     } on DioException catch (e) {
       throw _handleError(e);
